@@ -15,8 +15,8 @@ def fetch_stock_data(ticker, start_date, end_date):
     if stock_data.empty:
         return stock_data
     if 'Date' not in stock_data.columns:
-        stock_data.reset_index(inplace=True)  # Ensure Date is in a column
-    stock_data['Date'] = pd.to_datetime(stock_data['Date'])  # Convert Date column to datetime
+        stock_data.reset_index(inplace=True)
+    stock_data['Date'] = pd.to_datetime(stock_data['Date'])
     return stock_data
 
 app = dash.Dash(__name__)
@@ -53,22 +53,23 @@ app.layout = html.Div([
      dash.dependencies.State('date-picker', 'end_date')]
 )
 def update_actual_graph(n_clicks, ticker, start_date, end_date):
-    if (ticker==""):
-      return {
-                  'data': [],
-                  'layout': go.Layout(title='No data available for the selected range')
-              }
+  if (ticker==""):
+    return {
+      'data': [],
+      'layout': go.Layout(title='No data available for the selected range')
+  }
 
+  try:
     df = fetch_stock_data(ticker, start_date, end_date)
 
     if df.empty:
-        return {
-            'data': [],
-            'layout': go.Layout(title='No data available for the selected range')
-        }
+      return {
+        'data': [],
+        'layout': go.Layout(title='No data available for the selected range')
+     }
 
     trace = go.Scatter(
-        x=df['Date'],  # Ensure Date column is used
+        x=df['Date'], 
         y=df['Close'],
         mode='lines',
         name='Actual'
@@ -77,6 +78,11 @@ def update_actual_graph(n_clicks, ticker, start_date, end_date):
     return {
         'data': [trace],
         'layout': go.Layout(title='Actual Stock Prices', xaxis_title='Date', yaxis_title='Close Price')
+    }
+  except:
+    return {
+        'data': [],
+        'layout': go.Layout(title='Error fetching data')
     }
 
 @app.callback(
@@ -87,11 +93,12 @@ def update_actual_graph(n_clicks, ticker, start_date, end_date):
      dash.dependencies.State('date-picker', 'end_date')]
 )
 def update_predicted_graph(n_clicks, ticker, start_date, end_date):
-    if (ticker==""):
-      return {
-                  'data': [],
-                  'layout': go.Layout(title='No data available for the selected range')
-              }
+  if (ticker==""):
+    return {
+                'data': [],
+                'layout': go.Layout(title='No data available for the selected range')
+            }
+  try:
     df = fetch_stock_data(ticker, start_date, end_date)
 
     if df.empty:
@@ -122,7 +129,7 @@ def update_predicted_graph(n_clicks, ticker, start_date, end_date):
     for _ in range(future_days):
         pred = model.predict(current_batch)
         predictions.append(pred[0, 0])
-        pred = np.reshape(pred, (1, 1, 1))  # Ensure pred has shape (1, 1, 1)
+        pred = np.reshape(pred, (1, 1, 1))
         current_batch = np.append(current_batch[:, 1:, :], pred, axis=1)
 
     predictions = scaler.inverse_transform(np.array(predictions).reshape(-1, 1))
@@ -138,6 +145,11 @@ def update_predicted_graph(n_clicks, ticker, start_date, end_date):
     return {
         'data': [trace],
         'layout': go.Layout(title='Predicted Stock Prices', xaxis_title='Date', yaxis_title='Close Price')
+    }
+  except:
+    return {
+      'data': [],
+      'layout': go.Layout(title='Error fetching data')
     }
 
 if __name__ == '__main__':
